@@ -43,15 +43,15 @@ def extract_text_from_pdf(pdf_file):
 def store_in_astra_db(text):
     chunks = [text[i:i+500] for i in range(0, len(text), 500)]
     for chunk in chunks:
-        # Perbaikan: Ganti encode() dengan embed_query()
-        embedding = embeddings_model.embed_query(chunk).tolist()
+        # Perbaikan: Hapus .tolist()
+        embedding = embeddings_model.embed_query(chunk)
         doc_id = str(uuid.uuid4())
         collection.insert_one({"_id": doc_id, "text": chunk, "embedding": embedding})
 
 # Fungsi untuk mencari jawaban
 def search_answer(question):
-    # Perbaikan: Ganti encode() dengan embed_query()
-    question_embedding = embeddings_model.embed_query(question).tolist()
+    # Perbaikan: Hapus .tolist()
+    question_embedding = embeddings_model.embed_query(question)
     result = collection.find_one(
         sort={"embedding": {"$vector": question_embedding}},
         projection={"text": 1}
