@@ -2,7 +2,8 @@ import streamlit as st
 from astrapy import DataAPIClient
 import PyPDF2
 import uuid
-import struct  # Tambahkan import struct
+import struct
+import base64  # Tambahkan import base64
 
 try:
     from langchain.embeddings import HuggingFaceEmbeddings
@@ -45,23 +46,23 @@ def store_in_astra_db(text):
     chunks = [text[i:i+500] for i in range(0, len(text), 500)]
     for chunk in chunks:
         embedding = embeddings_model.embed_query(chunk)
-        # Konversi vektor ke binary
+        # Konversi ke binary lalu ke Base64
         embedding_binary = struct.pack('f' * len(embedding), *embedding)
+        embedding_base64 = base64.b64encode(embedding_binary).decode('utf-8')
         doc_id = str(uuid.uuid4())
         collection.insert_one({
             "_id": doc_id,
             "text": chunk,
-            "embedding": embedding_binary  # Simpan sebagai binary
+            "embedding": embedding_base64  # Simpan sebagai Base64 string
         })
 
 # Fungsi untuk mencari jawaban
 def search_answer(question):
     question_embedding = embeddings_model.embed_query(question)
-    # Konversi vektor pertanyaan ke binary
+    # Konversi ke binary
     question_embedding_binary = struct.pack('f' * len(question_embedding), *question_embedding)
-    
     result = collection.find_one(
-        sort={"embedding": {"$vector": question_embedding_binary}},  # Gunakan binary
+        sort={"embedding": {"$vector": question_embedding_binary}},
         projection={"text": 1}
     )
     return result["text"] if result else "Maaf, saya tidak menemukan jawaban yang relevan."
