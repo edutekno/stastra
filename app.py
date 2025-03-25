@@ -1,8 +1,14 @@
+
 import streamlit as st
 from astrapy import DataAPIClient
-from langchain.embeddings import HuggingFaceEmbeddings
 import PyPDF2
 import uuid
+
+try:
+    from langchain.embeddings import HuggingFaceEmbeddings
+except ImportError as e:
+    st.error(f"Gagal mengimpor HuggingFaceEmbeddings: {e}. Pastikan 'langchain' dan 'sentence-transformers' terinstal.")
+    st.stop()
 
 # Konfigurasi AstraDB
 ASTRA_TOKEN  = "AstraCS:MDMewQNUDbBKAnhWQloWFJAd:1598542746211376ce411be39fcfae4ba270721cb90d013eefccd44031dbf600"  # Ganti dengan token Anda
@@ -14,29 +20,32 @@ COLLECTION_NAME = "pdf_documents"
 client = DataAPIClient(ASTRA_TOKEN)
 db = client.get_database_by_api_endpoint(ASTRA_API_ENDPOINT, keyspace=KEYSPACE)
 
-# Buat atau akses koleksi
 try:
-    collection = db.create_collection(COLLECTION_NAME, dimension=384)  # 384 adalah dimensi dari MiniLM-L6-v2
-except:
+    collection = db.create_collection(COLLECTION_NAME, dimension=384)
+except Exception as e:
     collection = db.get_collection(COLLECTION_NAME)
 
 # Inisialisasi embeddings
-embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+try:
+    embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+except Exception as e:
+    st.error(f"Gagal inisialisasi embeddings: {e}")
+    st.stop()
 
 # Fungsi untuk ekstrak teks dari PDF
 def extract_text_from_pdf(pdf_file):
     pdf_reader = PyPDF2.PdfReader(pdf_file)
     text = ""
     for page in pdf_reader.pages:
-        text += page.extract_text()
+        text += page.extract_text() or ""
     return text
 
 # Fungsi untuk menyimpan teks dan vektor ke AstraDB
 def store_in_astra_db(text):
-    chunks = [text[i:i+500] for i in range(0, len(text), 500)]  # Pecah teks menjadi potongan kecil
+    chunks = [text[i:i+500] for i in range(0, len(text), 500)]
     for chunk in chunks:
         embedding = embeddings_model.encode(chunk).tolist()
-        doc_id = str(uuid.uuid4())  # ID unik untuk setiap dokumen
+        doc_id = str(uuid.uuid4())
         collection.insert_one({"_id": doc_id, "text": chunk, "embedding": embedding})
 
 # Fungsi untuk mencari jawaban
@@ -50,19 +59,21 @@ def search_answer(question):
 
 # Streamlit UI
 st.title("Chat2PDF - Tanyakan Apa Saja dari PDF Anda")
-
-# Unggah PDF
 uploaded_file = st.file_uploader("Unggah file PDF", type="pdf")
 
 if uploaded_file:
     st.write("PDF berhasil diunggah. Sedang memproses...")
-    text = extract_text_from_pdf(uploaded_file)
-    store_in_astra_db(text)
-    st.write("PDF telah diproses dan disimpan ke database.")
+    try:
+        text = extract_text_from_pdf(uploaded_file)
+        store_in_astra_db(text)
+        st.write("PDF telah diproses dan disimpan ke database.")
+    except Exception as e:
+        st.error(f"Error saat memproses PDF: {e}")
 
-# Input pertanyaan
 question = st.text_input("Masukkan pertanyaan Anda tentang isi PDF:")
-
 if question and uploaded_file:
-    answer = search_answer(question)
-    st.write("Jawaban:", answer)
+    try:
+        answer = search_answer(question)
+        st.write("Jawaban:", answer)
+    except Exception as e:
+        st.error(f"Error saat mencari jawaban: {e}")
