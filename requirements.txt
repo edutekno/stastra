@@ -2,5 +2,6 @@ streamlit
 astrapy
 PyPDF2
 langchain
+langchain-community
 sentence-transformers
 cassandra-driver
