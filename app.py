@@ -15,7 +15,7 @@ except ImportError as e:
 ASTRA_TOKEN  = "AstraCS:MDMewQNUDbBKAnhWQloWFJAd:1598542746211376ce411be39fcfae4ba270721cb90d013eefccd44031dbf600"
 ASTRA_API_ENDPOINT = "https://770919ae-7b86-4f0f-acfb-c77411020455-us-east-2.apps.astra.datastax.com"
 KEYSPACE = "default_keyspace"
-COLLECTION_NAME = "pdf_documents"
+COLLECTION_NAME = "pdf_documents2"
 
 # Inisialisasi klien AstraDB
 client = DataAPIClient(ASTRA_TOKEN)
