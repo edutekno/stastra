@@ -1,0 +1,6 @@
+streamlit
+astrapy
+PyPDF2
+langchain
+sentence-transformers
+cassandra-driver
